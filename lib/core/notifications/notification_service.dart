@@ -8,6 +8,10 @@ class NotificationService {
   static final _plugin = FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
 
+  // Set when the app was cold-started via a notification tap.
+  // Consumed by navigatePendingIfAny() once the router is ready.
+  static int? _pendingItemId;
+
   static Future<void> init() async {
     if (_initialized) return;
     tz.initializeTimeZones();
@@ -25,12 +29,21 @@ class NotificationService {
             AndroidFlutterLocalNotificationsPlugin>()
         ?.requestNotificationsPermission();
 
-    // Handle cold-start: app launched by tapping a notification
+    // Cold-start: store the item ID — the router doesn't exist yet.
+    // Navigation happens in navigatePendingIfAny() after the router mounts.
     final launchDetails = await _plugin.getNotificationAppLaunchDetails();
     if (launchDetails?.didNotificationLaunchApp == true) {
       final payload = launchDetails!.notificationResponse?.payload;
-      _navigateToItem(payload);
+      _pendingItemId = int.tryParse(payload ?? '');
     }
+  }
+
+  /// Call this after the GoRouter has been created and mounted.
+  static void navigatePendingIfAny() {
+    final id = _pendingItemId;
+    if (id == null) return;
+    _pendingItemId = null;
+    appRouter.push('/item/$id');
   }
 
   static void _onTap(NotificationResponse response) {

@@ -51,6 +51,10 @@ class _QueueVaultAppState extends State<QueueVaultApp> {
     final onboardingDone = prefs.getBool('onboarding_complete') ?? false;
     if (!mounted) return;
     setState(() => _router = makeRouter(onboardingDone: onboardingDone));
+    // Navigate to any notification-launched item after the router is mounted.
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => NotificationService.navigatePendingIfAny(),
+    );
     _handleSharedMedia();
   }
 
