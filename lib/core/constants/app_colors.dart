@@ -30,14 +30,16 @@ class AppColors {
   static const error       = Color(0xFFFF0055);
 
   // Category colors (neon set)
-  static const watchColor = Color(0xFF00F0FF); // cyan  — movies/series
-  static const watchGlow  = Color(0x3300F0FF);
-  static const animeColor = Color(0xFFFF0055); // pink  — anime
-  static const animeGlow  = Color(0x33FF0055);
-  static const playColor  = Color(0xFF00FF41); // green — games
-  static const playGlow   = Color(0x3300FF41);
-  static const buyColor   = Color(0xFFFFD600); // yellow — products
-  static const buyGlow    = Color(0x33FFD600);
+  static const watchColor  = Color(0xFF00F0FF); // cyan   — movies
+  static const watchGlow   = Color(0x3300F0FF);
+  static const seriesColor = Color(0xFFBF5FFF); // purple — series
+  static const seriesGlow  = Color(0x33BF5FFF);
+  static const animeColor  = Color(0xFFFF0055); // pink   — anime
+  static const animeGlow   = Color(0x33FF0055);
+  static const playColor   = Color(0xFF00FF41); // green  — games
+  static const playGlow    = Color(0x3300FF41);
+  static const buyColor    = Color(0xFFFFD600); // yellow — products
+  static const buyGlow     = Color(0x33FFD600);
 
   static const divider          = Color(0xFF1E2A3A);
   static const shimmerBase      = Color(0xFF0D1123);

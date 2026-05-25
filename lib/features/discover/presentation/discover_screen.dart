@@ -15,21 +15,31 @@ import '../../vault/data/models/item_type.dart';
 
 // ─── Filters ─────────────────────────────────────────────────────────────────
 
-enum DiscoverFilter { movies, series, anime, games }
+enum DiscoverFilter { movies, series, anime, games, products }
 
 extension DiscoverFilterX on DiscoverFilter {
   String get label => switch (this) {
-        DiscoverFilter.movies => 'Movies',
-        DiscoverFilter.series => 'Series',
-        DiscoverFilter.anime  => 'Anime',
-        DiscoverFilter.games  => 'Games',
+        DiscoverFilter.movies   => 'Movies',
+        DiscoverFilter.series   => 'Series',
+        DiscoverFilter.anime    => 'Anime',
+        DiscoverFilter.games    => 'Games',
+        DiscoverFilter.products => 'Products',
       };
 
   IconData get icon => switch (this) {
-        DiscoverFilter.movies => Icons.movie_outlined,
-        DiscoverFilter.series => Icons.tv_outlined,
-        DiscoverFilter.anime  => Icons.auto_awesome_outlined,
-        DiscoverFilter.games  => Icons.sports_esports_outlined,
+        DiscoverFilter.movies   => Icons.movie_outlined,
+        DiscoverFilter.series   => Icons.tv_outlined,
+        DiscoverFilter.anime    => Icons.auto_awesome_outlined,
+        DiscoverFilter.games    => Icons.sports_esports_outlined,
+        DiscoverFilter.products => Icons.shopping_bag_outlined,
+      };
+
+  Color get chipColor => switch (this) {
+        DiscoverFilter.movies   => AppColors.watchColor,
+        DiscoverFilter.series   => AppColors.seriesColor,
+        DiscoverFilter.anime    => AppColors.animeColor,
+        DiscoverFilter.games    => AppColors.playColor,
+        DiscoverFilter.products => AppColors.buyColor,
       };
 }
 
@@ -42,6 +52,7 @@ class DiscoverState {
       DiscoverFilter.series,
       DiscoverFilter.anime,
       DiscoverFilter.games,
+      DiscoverFilter.products,
     },
     this.items = const [],
     this.isLoading = false,
@@ -166,10 +177,11 @@ final discoverProvider =
 
 Future<List<SearchResult>> _fetchForFilter(DiscoverFilter f, int page) =>
     switch (f) {
-      DiscoverFilter.movies => _fetchTmdb('movie', page),
-      DiscoverFilter.series => _fetchTmdb('tv', page),
-      DiscoverFilter.anime  => _fetchAnime(page),
-      DiscoverFilter.games  => _fetchGames(page),
+      DiscoverFilter.movies   => _fetchTmdb('movie', page),
+      DiscoverFilter.series   => _fetchTmdb('tv', page),
+      DiscoverFilter.anime    => _fetchAnime(page),
+      DiscoverFilter.games    => _fetchGames(page),
+      DiscoverFilter.products => _fetchProducts(page),
     };
 
 Future<List<SearchResult>> _fetchTmdb(String type, int page) async {
@@ -293,7 +305,53 @@ Future<List<SearchResult>> _fetchGames(int page) async {
   }
 }
 
+Future<List<SearchResult>> _fetchProducts(int page) async {
+  try {
+    // FakeStore API — free, no key, 20 products total
+    // We simulate pagination by slicing the full list
+    const pageSize = 8;
+    final dio = Dio(BaseOptions(baseUrl: 'https://fakestoreapi.com'));
+    final res = await dio.get(
+      '/products',
+      queryParameters: {'limit': 20},
+    );
+    final list = res.data as List;
+
+    // Simple client-side pagination
+    final start = ((page - 1) * pageSize) % list.length;
+    final slice = <dynamic>[];
+    for (var i = 0; i < pageSize; i++) {
+      slice.add(list[(start + i) % list.length]);
+    }
+
+    return slice.map((r) {
+      final price = (r['price'] as num?)?.toDouble();
+      final category = r['category'] as String? ?? '';
+      return SearchResult(
+        id: r['id'].toString(),
+        title: r['title'] ?? '',
+        type: ItemType.product,
+        posterUrl: r['image'],
+        overview: r['description'],
+        genre: _capitalizeWords(category),
+        extraData: {
+          'price': price,
+          'store_url': null,
+        },
+      );
+    }).toList();
+  } catch (_) {
+    return [];
+  }
+}
+
+String _capitalizeWords(String s) => s
+    .split(' ')
+    .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
+    .join(' ');
+
 // ─── Screen ───────────────────────────────────────────────────────────────────
+
 
 class DiscoverScreen extends ConsumerStatefulWidget {
   const DiscoverScreen({super.key});
@@ -347,6 +405,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 children: DiscoverFilter.values.map((f) {
                   final selected = state.selected.contains(f);
+                  final color = f.chipColor;
                   return Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: FilterChip(
@@ -357,17 +416,13 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
                           Icon(
                             f.icon,
                             size: 14,
-                            color: selected
-                                ? AppColors.primary
-                                : AppColors.textMuted,
+                            color: selected ? color : AppColors.textMuted,
                           ),
                           const SizedBox(width: 5),
                           Text(
                             f.label,
                             style: AppTextStyles.labelSmall.copyWith(
-                              color: selected
-                                  ? AppColors.primary
-                                  : AppColors.textMuted,
+                              color: selected ? color : AppColors.textMuted,
                             ),
                           ),
                         ],
@@ -376,11 +431,10 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
                           .read(discoverProvider.notifier)
                           .toggleFilter(f),
                       backgroundColor: AppColors.surfaceLight,
-                      selectedColor:
-                          AppColors.primary.withValues(alpha: 0.15),
+                      selectedColor: color.withValues(alpha: 0.15),
                       side: BorderSide(
                         color: selected
-                            ? AppColors.primary.withValues(alpha: 0.5)
+                            ? color.withValues(alpha: 0.5)
                             : AppColors.cardBorder,
                       ),
                       showCheckmark: false,
@@ -493,8 +547,7 @@ class _DiscoverCard extends StatelessWidget {
     return GlowCard(
       glowIntensity: 0.6,
       borderRadius: 14,
-      onTap: () => context.push('/add',
-          extra: {'type': result.type.name, 'url': result.posterUrl}),
+      onTap: () => context.push('/discover/detail', extra: result),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

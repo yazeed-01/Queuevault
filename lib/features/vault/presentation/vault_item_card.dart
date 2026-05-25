@@ -97,7 +97,7 @@ class _VaultItemCardState extends ConsumerState<VaultItemCard> {
 
   Color _glowForType(ItemType type) => switch (type) {
         ItemType.movie => AppColors.watchGlow,
-        ItemType.series => AppColors.watchGlow,
+        ItemType.series  => AppColors.seriesGlow,
         ItemType.anime => AppColors.animeGlow,
         ItemType.game => AppColors.playGlow,
         ItemType.product => AppColors.buyGlow,

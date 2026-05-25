@@ -373,9 +373,10 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
       };
 
   Color _colorForType(ItemType t) => switch (t) {
-        ItemType.movie || ItemType.series => AppColors.watchColor,
-        ItemType.anime => AppColors.animeColor,
-        ItemType.game => AppColors.playColor,
+        ItemType.movie   => AppColors.watchColor,
+        ItemType.series  => AppColors.seriesColor,
+        ItemType.anime   => AppColors.animeColor,
+        ItemType.game    => AppColors.playColor,
         ItemType.product => AppColors.buyColor,
       };
 }
@@ -552,7 +553,7 @@ class _CategoryPicker extends StatelessWidget {
             final isSelected = t == selected;
             final (label, color, icon) = switch (t) {
               ItemType.movie => ('Movie', AppColors.watchColor, Icons.movie_rounded),
-              ItemType.series => ('Series', AppColors.watchColor, Icons.tv_rounded),
+              ItemType.series  => ('Series', AppColors.seriesColor, Icons.tv_rounded),
               ItemType.anime => ('Anime', AppColors.animeColor, Icons.auto_awesome),
               ItemType.game => ('Game', AppColors.playColor, Icons.sports_esports_rounded),
               ItemType.product => ('Product', AppColors.buyColor, Icons.shopping_bag_rounded),

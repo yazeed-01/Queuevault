@@ -59,20 +59,46 @@ class _WheelBrowserLayoutState extends ConsumerState<WheelBrowserLayout>
   }
 
   void _syncControllers(List<(Category, List<VaultItem>)> pages) {
-    if (pages.length == _pages.length) return;
+    // Always handle page count changes (new category appeared or disappeared)
+    if (pages.length != _pages.length) {
+      for (final c in _wheelControllers) {
+        c.dispose();
+      }
+      _wheelControllers.clear();
+      _itemIndices.clear();
 
-    for (final c in _wheelControllers) {
-      c.dispose();
+      for (int i = 0; i < pages.length; i++) {
+        _wheelControllers.add(FixedExtentScrollController());
+        _itemIndices.add(0);
+      }
+      _pages = pages;
+      return;
     }
-    _wheelControllers.clear();
-    _itemIndices.clear();
 
+    // Same page count — check each category for newly added items and
+    // jump the wheel to the new last item so the hero updates immediately.
     for (int i = 0; i < pages.length; i++) {
-      _wheelControllers.add(FixedExtentScrollController());
-      _itemIndices.add(0);
+      final newItems = pages[i].$2;
+      final oldItems = _pages.isNotEmpty ? _pages[i].$2 : <VaultItem>[];
+
+      if (newItems.length > oldItems.length) {
+        // A new item was added — jump wheel to the end (newest item)
+        final newIdx = newItems.length - 1;
+        _itemIndices[i] = newIdx;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_wheelControllers.length > i &&
+              _wheelControllers[i].hasClients) {
+            _wheelControllers[i].jumpToItem(newIdx);
+          }
+        });
+      } else if (newItems.length < oldItems.length) {
+        // An item was deleted — clamp index so it never goes out of range
+        _itemIndices[i] = _itemIndices[i].clamp(0, newItems.length - 1);
+      }
     }
     _pages = pages;
   }
+
 
   void _onCategoryChanged(int page) {
     HapticFeedback.lightImpact();
@@ -91,6 +117,10 @@ class _WheelBrowserLayoutState extends ConsumerState<WheelBrowserLayout>
   Widget build(BuildContext context) {
     final allAsync = ref.watch(allVaultStreamProvider);
     final catsAsync = ref.watch(categoriesStreamProvider);
+
+    // Jump to a specific category when requested (e.g. from Discover → Go to Vault)
+    final jumpTo = ref.watch(vaultJumpToTypeProvider);
+
 
     return allAsync.when(
       data: (allItems) {
@@ -111,7 +141,31 @@ class _WheelBrowserLayoutState extends ConsumerState<WheelBrowserLayout>
             // Sync controllers whenever page count changes
             _syncControllers(pages);
 
+            // Jump to requested category (set by "Go to Vault" from Discover)
+            if (jumpTo != null) {
+              final targetPage = pages.indexWhere((p) => p.$1.typeKey == jumpTo);
+              if (targetPage >= 0 && targetPage != _pageIndex) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (_pageCtrl.hasClients) {
+                    _pageCtrl.animateToPage(
+                      targetPage,
+                      duration: const Duration(milliseconds: 450),
+                      curve: Curves.easeOutCubic,
+                    );
+                  }
+                  // Clear so it doesn't re-trigger on next rebuild
+                  ref.read(vaultJumpToTypeProvider.notifier).state = null;
+                });
+              } else {
+                // Already on the right page — just clear
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  ref.read(vaultJumpToTypeProvider.notifier).state = null;
+                });
+              }
+            }
+
             final safePageIdx = _pageIndex.clamp(0, pages.length - 1);
+
             final (currentCat, currentItems) = pages[safePageIdx];
             final safeItemIdx =
                 _itemIndices[safePageIdx].clamp(0, currentItems.length - 1);
@@ -269,7 +323,7 @@ class _WheelBrowserLayoutState extends ConsumerState<WheelBrowserLayout>
 
   Color _glowForType(ItemType type) => switch (type) {
         ItemType.movie => AppColors.watchColor,
-        ItemType.series => AppColors.watchColor,
+        ItemType.series  => AppColors.seriesColor,
         ItemType.anime => AppColors.animeColor,
         ItemType.game => AppColors.playColor,
         ItemType.product => AppColors.buyColor,
@@ -778,7 +832,7 @@ class _VaultCylinderWheel extends StatelessWidget {
 
   Color _glowForType(ItemType type) => switch (type) {
         ItemType.movie => AppColors.watchColor,
-        ItemType.series => AppColors.watchColor,
+        ItemType.series  => AppColors.seriesColor,
         ItemType.anime => AppColors.animeColor,
         ItemType.game => AppColors.playColor,
         ItemType.product => AppColors.buyColor,

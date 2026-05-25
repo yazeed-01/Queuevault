@@ -70,9 +70,10 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
   }
 
   Color get _typeColor => switch (_selectedType) {
-        ItemType.movie || ItemType.series => AppColors.watchColor,
-        ItemType.anime => AppColors.animeColor,
-        ItemType.game => AppColors.playColor,
+        ItemType.movie  => AppColors.watchColor,
+        ItemType.series => AppColors.seriesColor,
+        ItemType.anime  => AppColors.animeColor,
+        ItemType.game   => AppColors.playColor,
         ItemType.product => AppColors.buyColor,
       };
 
@@ -443,9 +444,10 @@ class _TypeBar extends StatelessWidget {
   }
 
   Color _color(ItemType t) => switch (t) {
-        ItemType.movie || ItemType.series => AppColors.watchColor,
-        ItemType.anime => AppColors.animeColor,
-        ItemType.game => AppColors.playColor,
+        ItemType.movie   => AppColors.watchColor,
+        ItemType.series  => AppColors.seriesColor,
+        ItemType.anime   => AppColors.animeColor,
+        ItemType.game    => AppColors.playColor,
         ItemType.product => AppColors.buyColor,
       };
 }

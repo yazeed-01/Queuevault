@@ -27,3 +27,8 @@ final vaultStreamProvider = StreamProvider<List<VaultItem>>((ref) {
 final allVaultStreamProvider = StreamProvider<List<VaultItem>>((ref) {
   return ref.watch(vaultRepositoryProvider).watchAll();
 });
+
+/// Set this to a typeKey (e.g. 'anime') before navigating to /vault so the
+/// active layout scrolls/jumps to that category automatically.
+final vaultJumpToTypeProvider = StateProvider<String?>((ref) => null);
+

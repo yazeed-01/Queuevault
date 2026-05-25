@@ -14,7 +14,7 @@ class CategoryBadge extends StatelessWidget {
     final (label, color, icon) = switch (type) {
       ItemType.movie => ('MOVIE', AppColors.watchColor, Icons.movie_rounded),
       ItemType.series =>
-        ('SERIES', AppColors.watchColor, Icons.tv_rounded),
+        ('SERIES', AppColors.seriesColor, Icons.tv_rounded),
       ItemType.anime => ('ANIME', AppColors.animeColor, Icons.auto_awesome),
       ItemType.game => ('GAME', AppColors.playColor, Icons.sports_esports_rounded),
       ItemType.product => ('BUY', AppColors.buyColor, Icons.shopping_bag_rounded),

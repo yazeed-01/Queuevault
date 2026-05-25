@@ -378,7 +378,7 @@ class _SpotlightCard extends ConsumerWidget {
 
   Color _glowForType(ItemType type) => switch (type) {
         ItemType.movie => AppColors.watchColor,
-        ItemType.series => AppColors.watchColor,
+        ItemType.series  => AppColors.seriesColor,
         ItemType.anime => AppColors.animeColor,
         ItemType.game => AppColors.playColor,
         ItemType.product => AppColors.buyColor,

@@ -8,10 +8,12 @@ import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/settings/presentation/design_presets_page.dart';
 import '../../features/settings/presentation/api_keys_page.dart';
 import '../../features/discover/presentation/discover_screen.dart';
+import '../../features/discover/presentation/discover_detail_screen.dart';
 import '../../features/vault/data/models/item_type.dart';
 import '../../features/categories/presentation/category_manager_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../database/app_database.dart';
+import '../network/search_result.dart';
 
 GoRouter? _appRouter;
 GoRouter get appRouter => _appRouter!;
@@ -84,6 +86,13 @@ GoRouter _buildRouter({required bool onboardingDone}) => GoRouter(
             : ItemType.movie;
         final existing = extra?['item'] as VaultItem?;
         return _slide(ItemFormScreen(type: type, existingItem: existing));
+      },
+    ),
+    GoRoute(
+      path: '/discover/detail',
+      pageBuilder: (context, state) {
+        final result = state.extra as SearchResult;
+        return _slide(DiscoverDetailScreen(result: result));
       },
     ),
   ],
