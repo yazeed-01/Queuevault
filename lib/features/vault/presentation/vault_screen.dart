@@ -40,19 +40,34 @@ class _ShimmerCard extends StatelessWidget {
 class VaultScreen extends ConsumerWidget {
   const VaultScreen({super.key});
 
+  // Enum order: grid=0, swimlanes=1, heroFeed=2, deckSpotlight=3, wheelBrowser=4
+  static const _layoutOrder = VaultLayout.values;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final prefs = ref.watch(layoutPrefsProvider);
+    final index = _layoutOrder.indexOf(prefs.layout);
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: switch (prefs.layout) {
-        VaultLayout.swimlanes => const SwimlanesLayout(),
-        VaultLayout.heroFeed => const HeroFeedLayout(),
-        VaultLayout.deckSpotlight => const DeckSpotlightLayout(),
-        VaultLayout.wheelBrowser => const WheelBrowserLayout(),
-        VaultLayout.grid => _GridBody(prefs: prefs),
-      },
+      // IndexedStack keeps every layout widget alive in the tree —
+      // images, scroll positions, and controller state are preserved
+      // when switching designs, eliminating the "blank image" bug.
+      body: IndexedStack(
+        index: index < 0 ? 0 : index,
+        children: [
+          // grid (index 0)
+          _GridBody(prefs: prefs),
+          // swimlanes (index 1)
+          const SwimlanesLayout(),
+          // heroFeed (index 2)
+          const HeroFeedLayout(),
+          // deckSpotlight (index 3)
+          const DeckSpotlightLayout(),
+          // wheelBrowser (index 4)
+          const WheelBrowserLayout(),
+        ],
+      ),
       floatingActionButton: _AddFab(),
     );
   }

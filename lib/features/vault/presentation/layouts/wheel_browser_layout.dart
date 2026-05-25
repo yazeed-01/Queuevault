@@ -332,7 +332,7 @@ class _WheelBrowserLayoutState extends ConsumerState<WheelBrowserLayout>
 
 // ─── One page = one category ──────────────────────────────────────────────────
 
-class _CategoryPage extends StatelessWidget {
+class _CategoryPage extends StatefulWidget {
   const _CategoryPage({
     required this.cat,
     required this.catColor,
@@ -358,7 +358,38 @@ class _CategoryPage extends StatelessWidget {
   final ValueChanged<VaultItem>? onItemTapped;
 
   @override
+  State<_CategoryPage> createState() => _CategoryPageState();
+}
+
+class _CategoryPageState extends State<_CategoryPage> {
+  ItemStatus? _statusFilter;
+  int _localIndex = 0;
+
+  List<VaultItem> get _filteredItems {
+    if (_statusFilter == null) return widget.items;
+    return widget.items
+        .where((i) => ItemStatusExt.fromString(i.status) == _statusFilter)
+        .toList();
+  }
+
+  void _setFilter(ItemStatus? filter) {
+    setState(() {
+      _statusFilter = filter;
+      _localIndex = 0;
+    });
+    if (widget.wheelController.hasClients) {
+      widget.wheelController.jumpToItem(0);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final filteredItems = _filteredItems;
+    final safeIdx =
+        filteredItems.isEmpty ? 0 : _localIndex.clamp(0, filteredItems.length - 1);
+    final displayItem =
+        filteredItems.isEmpty ? widget.currentItem : filteredItems[safeIdx];
+
     return Column(
       children: [
         // Category header
@@ -367,23 +398,23 @@ class _CategoryPage extends StatelessWidget {
           child: Row(
             children: [
               AnimatedBuilder(
-                animation: glowCtrl,
+                animation: widget.glowCtrl,
                 builder: (_, __) => Container(
                   width: 34,
                   height: 34,
                   decoration: BoxDecoration(
-                    color: catColor.withValues(
-                        alpha: 0.12 + glowCtrl.value * 0.06),
+                    color: widget.catColor.withValues(
+                        alpha: 0.12 + widget.glowCtrl.value * 0.06),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: catColor.withValues(
-                          alpha: 0.35 + glowCtrl.value * 0.2),
+                      color: widget.catColor.withValues(
+                          alpha: 0.35 + widget.glowCtrl.value * 0.2),
                     ),
                   ),
                   child: Icon(
-                    CategoryIcons.resolve(cat.iconName),
+                    CategoryIcons.resolve(widget.cat.iconName),
                     size: 16,
-                    color: catColor,
+                    color: widget.catColor,
                   ),
                 ),
               ),
@@ -392,17 +423,26 @@ class _CategoryPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(cat.name,
+                    Text(widget.cat.name,
                         style: AppTextStyles.titleSmall
-                            .copyWith(color: catColor)),
+                            .copyWith(color: widget.catColor)),
                     Text(
-                      '${items.length} item${items.length == 1 ? '' : 's'}',
+                      _statusFilter == null
+                          ? '${widget.items.length} item${widget.items.length == 1 ? '' : 's'}'
+                          : '${filteredItems.length} / ${widget.items.length}',
                       style: AppTextStyles.bodySmall
                           .copyWith(color: AppColors.textMuted),
                     ),
                   ],
                 ),
               ),
+              // Status filter button
+              _StatusFilterButton(
+                current: _statusFilter,
+                catColor: widget.catColor,
+                onChanged: _setFilter,
+              ),
+              const SizedBox(width: 8),
               // Swipe hint
               Column(
                 children: [
@@ -421,46 +461,166 @@ class _CategoryPage extends StatelessWidget {
           flex: 4,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: _DetailPanel(
-              item: currentItem,
-              glowColor: glowColor,
-              glowCtrl: glowCtrl,
-            )
-                .animate(key: ValueKey(currentItem.id))
-                .fadeIn(duration: 300.ms)
-                .slideY(
-                    begin: 0.04,
-                    end: 0,
-                    curve: Curves.easeOutCubic),
+            child: filteredItems.isEmpty
+                ? Center(
+                    child: Text(
+                      'No ${_statusFilter?.label ?? ''} items',
+                      style: AppTextStyles.bodyMedium
+                          .copyWith(color: AppColors.textMuted),
+                    ),
+                  )
+                : _DetailPanel(
+                    item: displayItem,
+                    glowColor: widget.glowColor,
+                    glowCtrl: widget.glowCtrl,
+                  )
+                    .animate(key: ValueKey(displayItem.id))
+                    .fadeIn(duration: 300.ms)
+                    .slideY(
+                        begin: 0.04,
+                        end: 0,
+                        curve: Curves.easeOutCubic),
           ),
         ),
 
         const SizedBox(height: 10),
 
         // Counter
-        Text(
-          '${currentIndex + 1} / ${items.length}',
-          style:
-              AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
-        ),
+        if (filteredItems.isNotEmpty)
+          Text(
+            '${safeIdx + 1} / ${filteredItems.length}',
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+          ),
 
         const SizedBox(height: 6),
 
         // Horizontal cylinder wheel
-        Expanded(
-          flex: 5,
-          child: _VaultCylinderWheel(
-            items: items,
-            currentIndex: currentIndex,
-            controller: wheelController,
-            glowCtrl: glowCtrl,
-            onItemChanged: onItemChanged,
-            onItemTapped: onItemTapped,
-          ),
-        ),
+        if (filteredItems.isNotEmpty)
+          Expanded(
+            flex: 5,
+            child: _VaultCylinderWheel(
+              items: filteredItems,
+              currentIndex: safeIdx,
+              controller: widget.wheelController,
+              glowCtrl: widget.glowCtrl,
+              onItemChanged: (i) {
+                setState(() => _localIndex = i);
+                widget.onItemChanged(i);
+              },
+              onItemTapped: widget.onItemTapped,
+            ),
+          )
+        else
+          const Spacer(flex: 5),
 
         const SizedBox(height: 8),
       ],
+    );
+  }
+}
+
+// ─── Status filter popup button ───────────────────────────────────────────────
+
+class _StatusFilterButton extends StatelessWidget {
+  const _StatusFilterButton({
+    required this.current,
+    required this.catColor,
+    required this.onChanged,
+  });
+
+  final ItemStatus? current;
+  final Color catColor;
+  final ValueChanged<ItemStatus?> onChanged;
+
+  Color _colorForStatus(ItemStatus? s) => switch (s) {
+        null => AppColors.textMuted,
+        ItemStatus.want => AppColors.primary,
+        ItemStatus.inProgress => AppColors.accent,
+        ItemStatus.completed => AppColors.success,
+        ItemStatus.dropped => AppColors.textMuted,
+      };
+
+  String _labelForStatus(ItemStatus? s) => switch (s) {
+        null => 'All',
+        _ => s.label,
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final activeColor = current == null ? catColor : _colorForStatus(current);
+    return PopupMenuButton<ItemStatus?>(
+      initialValue: current,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: AppColors.cardBorder),
+      ),
+      color: AppColors.surface,
+      offset: const Offset(0, 36),
+      itemBuilder: (_) => [
+        null,
+        ItemStatus.want,
+        ItemStatus.inProgress,
+        ItemStatus.completed,
+        ItemStatus.dropped,
+      ].map((s) {
+        final c = _colorForStatus(s);
+        final isSelected = current == s;
+        return PopupMenuItem<ItemStatus?>(
+          value: s,
+          onTap: () => onChanged(s),
+          child: Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: c,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _labelForStatus(s),
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: isSelected ? c : AppColors.textPrimary,
+                  fontWeight:
+                      isSelected ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
+              if (isSelected) ...[
+                const Spacer(),
+                Icon(Icons.check_rounded, size: 14, color: c),
+              ],
+            ],
+          ),
+        );
+      }).toList(),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          color: activeColor.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: activeColor.withValues(alpha: 0.4),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _labelForStatus(current),
+              style: AppTextStyles.labelSmall.copyWith(
+                color: activeColor,
+                fontSize: 11,
+              ),
+            ),
+            const SizedBox(width: 3),
+            Icon(Icons.keyboard_arrow_down_rounded,
+                size: 12, color: activeColor),
+          ],
+        ),
+      ),
     );
   }
 }
