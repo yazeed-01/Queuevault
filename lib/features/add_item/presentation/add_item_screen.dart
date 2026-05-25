@@ -150,7 +150,7 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
           children: [
             Icon(Icons.bolt, color: _typeColor, size: 20),
             const SizedBox(width: 6),
-            Text('Quick Add', style: AppTextStyles.titleLarge),
+            Text('Add', style: AppTextStyles.titleLarge),
           ],
         ),
         bottom: PreferredSize(
@@ -169,6 +169,31 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
               ref.read(searchQueryProvider.notifier).state = _searchCtrl.text;
             },
           ),
+
+          // Category context hint
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+            child: Row(
+              children: [
+                Icon(Icons.folder_outlined, size: 13, color: _typeColor.withValues(alpha: 0.8)),
+                const SizedBox(width: 5),
+                Text(
+                  'Adding to ${_labelFor(_selectedType)}',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: _typeColor.withValues(alpha: 0.9),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text('·', style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted)),
+                const SizedBox(width: 6),
+                Text(
+                  'Tap another tab to change',
+                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+                ),
+              ],
+            ),
+          ).animate(key: ValueKey(_selectedType)).fadeIn(duration: 200.ms),
 
           // Search field
           Padding(
@@ -194,6 +219,7 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
               ),
             ),
           ),
+
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 6, 16, 4),
             child: Row(
@@ -294,6 +320,14 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
         ItemType.anime => 'Search anime or type to quick-add...',
         ItemType.game => 'Search game or type to quick-add...',
         ItemType.product => 'Search product or type to quick-add...',
+      };
+
+  String _labelFor(ItemType t) => switch (t) {
+        ItemType.movie => 'Movies',
+        ItemType.series => 'Series',
+        ItemType.anime => 'Anime',
+        ItemType.game => 'Games',
+        ItemType.product => 'Products',
       };
 }
 

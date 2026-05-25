@@ -35,6 +35,7 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
   late final TextEditingController _storeUrlCtrl;
   late final TextEditingController _platformCtrl;
   late ItemStatus _status;
+  late ItemType _selectedType;
 
   File? _pickedImageFile;
   String? _existingLocalImagePath;
@@ -53,6 +54,7 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
     _storeUrlCtrl = TextEditingController(text: e?.storeUrl ?? '');
     _platformCtrl = TextEditingController(text: e?.platform ?? '');
     _status = e != null ? ItemStatusExt.fromString(e.status) : ItemStatus.want;
+    _selectedType = e != null ? ItemTypeExt.fromString(e.itemType) : widget.type;
     _existingLocalImagePath = e?.localImagePath;
   }
 
@@ -165,6 +167,7 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
 
     if (existing != null) {
       await repo.update(existing.copyWith(
+        itemType: _selectedType.value,
         title: title,
         posterUrl: Value(_posterCtrl.text.trim().isEmpty ? null : _posterCtrl.text.trim()),
         overview: Value(_overviewCtrl.text.trim().isEmpty ? null : _overviewCtrl.text.trim()),
@@ -244,6 +247,15 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
               onTap: _showImageSourceSheet,
             ),
             const SizedBox(height: 16),
+
+            // Category picker (only shown when editing)
+            if (widget.existingItem != null) ...[
+              _CategoryPicker(
+                selected: _selectedType,
+                onSelect: (t) => setState(() => _selectedType = t),
+              ),
+              const SizedBox(height: 12),
+            ],
 
             // Title
             _Field(
@@ -516,3 +528,70 @@ class _StatusPicker extends StatelessWidget {
     );
   }
 }
+
+class _CategoryPicker extends StatelessWidget {
+  const _CategoryPicker({
+    required this.selected,
+    required this.onSelect,
+  });
+
+  final ItemType selected;
+  final void Function(ItemType) onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Category', style: AppTextStyles.titleSmall),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: ItemType.values.map((t) {
+            final isSelected = t == selected;
+            final (label, color, icon) = switch (t) {
+              ItemType.movie => ('Movie', AppColors.watchColor, Icons.movie_rounded),
+              ItemType.series => ('Series', AppColors.watchColor, Icons.tv_rounded),
+              ItemType.anime => ('Anime', AppColors.animeColor, Icons.auto_awesome),
+              ItemType.game => ('Game', AppColors.playColor, Icons.sports_esports_rounded),
+              ItemType.product => ('Product', AppColors.buyColor, Icons.shopping_bag_rounded),
+            };
+            return GestureDetector(
+              onTap: () => onSelect(t),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected ? color.withValues(alpha: 0.18) : AppColors.surfaceLight,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isSelected ? color.withValues(alpha: 0.6) : AppColors.cardBorder,
+                    width: isSelected ? 1.5 : 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon,
+                        size: 15,
+                        color: isSelected ? color : AppColors.textMuted),
+                    const SizedBox(width: 6),
+                    Text(
+                      label,
+                      style: AppTextStyles.labelSmall.copyWith(
+                        color: isSelected ? color : AppColors.textMuted,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+}
+
